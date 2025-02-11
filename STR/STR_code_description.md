@@ -1,0 +1,1 @@
+https://github.com/mhguo1/AD_STR/tree/main/STR_genotyping
