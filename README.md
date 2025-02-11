@@ -4,7 +4,7 @@
 ## Introduction
 This repository contains the code necessary to reproduce analyses for the Korean Alzheimer's disease WGS study using the K-ROAD cohort.
 
-## Dataset list
+## Analyses Included in This Study
 1. QC: quality control for samples and variants
 2. GWAS: GWAS analysis using common variants and rare coding variants
 3. CWAS: CWAS analysis using rare noncoding variants 
