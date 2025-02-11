@@ -7,7 +7,7 @@ Specifically:
 - 03.EH_model1_model2.R was structured similarly to single_str_association_analysis.R and fisher_single_str_test.R, implementing analogous statistical tests but adapted to our dataset.
 - 04.EH_DBSCAN_outlier.R implemented the same DBSCAN clustering approach as in run_dbscan.R and parse_dbscan.R, using identical distance metrics and parameter settings.
 
-Additionally:
+In addition, we developed the following scripts to expand the workflow:
 - 02.EH_QC.R was newly implemented for quality control based on coverage.
 - 05.EH_model3.R was developed for STR analysis based on outlier counts.
 
