@@ -232,7 +232,7 @@
   str_list = dat.list$id
   
   # Fisher's exact test for each STR length thresholds (by parameter s)
-  for(s in c(1,5,10,20)){
+  for(s in c(5,10,20)){
     
     print(paste0('Paramter s: ',s))
     
@@ -287,7 +287,7 @@
   str_list = dat.list$id
   
   #Perform Fisher's exact test at different STR tract length thresholds (parameter s)
-  for(s in c(1,5,10,20)){
+  for(s in c(5,10,20)){
     
     print(paste0('Paramter s: ',s))
     
@@ -355,7 +355,7 @@
     # Define a function that performs a mutate operation on each element of a list
     mutate_list <- function(df) {
       df <- df %>%
-        mutate(!!paste0('thr_', 1,'_freq') := ifelse(allele_count >= 1, 1, 0),
+        mutate(
                !!paste0('thr_', 5,'_freq') := ifelse(allele_count >= 5, 1, 0),
                !!paste0('thr_', 10,'_freq') := ifelse(allele_count >= 10, 1, 0),
                !!paste0('thr_', 20,'_freq') := ifelse(allele_count >= 20, 1, 0))
@@ -373,7 +373,7 @@
     dat.t.test.s.ref_df <- dat.t.test.s.ref_df %>% filter(sample %in% pheno$sample)
     
     # Set up the given dataset (dat.t.test.s.ref) and the required threshold and frequency lists.
-    threshold_list <- c(1, 5, 10, 20)
+    threshold_list <- c( 5, 10, 20)
     frequency_list <- c(1, 5, 10, 100, Inf)  # Inf means No limit
     
     dat.thr <- as.data.table(dat.t.test.s.ref_df)
@@ -391,9 +391,7 @@
       print(paste0('thr: ',thr))
       for (freq in frequency_list) {
         print(paste0('freq: ',freq))
-        if (freq == 1) {
-          thr_freq_list = dat.list %>% filter(!!sym(paste0('thr_', thr,'_freq')) == freq) %>% pull(id)
-        } else {
+        if (T) {
           thr_freq_list = dat.list %>% filter(!!sym(paste0('thr_', thr,'_freq')) <= freq) %>% pull(id)
         }
         
@@ -661,7 +659,7 @@
   str_list = dat.list$id
   
   # Fisher's exact test for each STR length thresholds (by parameter s)
-  for(s in c(1,5,10,20)){
+  for(s in c(5,10,20)){
     
     print(paste0('Paramter s: ',s))
     
@@ -718,7 +716,7 @@
   str_list = dat.list$id
   
   #Perform Fisher's exact test at different STR tract length thresholds (parameter s)
-  for(s in c(1,5,10,20)){
+  for(s in c(5,10,20)){
     
     print(paste0('Paramter s: ',s))
     
@@ -783,7 +781,7 @@
     # Define a function that performs a mutate operation on each element of a list
     mutate_list <- function(df) {
       df <- df %>%
-        mutate(!!paste0('thr_', 1,'_freq') := ifelse(allele_count >= 1, 1, 0),
+        mutate(
                !!paste0('thr_', 5,'_freq') := ifelse(allele_count >= 5, 1, 0),
                !!paste0('thr_', 10,'_freq') := ifelse(allele_count >= 10, 1, 0),
                !!paste0('thr_', 20,'_freq') := ifelse(allele_count >= 20, 1, 0))
@@ -802,7 +800,7 @@
     dat.t.test.s.ref_df <- dat.t.test.s.ref_df %>% filter(sample %in% pheno$sample)
     
     # Set up the given dataset (dat.t.test.s.ref) and the required threshold and frequency lists.
-    threshold_list <- c(1, 5, 10, 20)
+    threshold_list <- c(5, 10, 20)
     frequency_list <- c(1, 5, 10, 100, Inf)  # Inf means No limit
     
     
@@ -821,9 +819,7 @@
       print(paste0('thr: ',thr))
       for (freq in frequency_list) {
         print(paste0('freq: ',freq))
-        if (freq == 1) {
-          thr_freq_list = dat.list %>% filter(!!sym(paste0('thr_', thr,'_freq')) == freq) %>% pull(id)
-        } else {
+        if (T) {
           thr_freq_list = dat.list %>% filter(!!sym(paste0('thr_', thr,'_freq')) <= freq) %>% pull(id)
         }
         
