@@ -11,3 +11,4 @@ This repository contains the code necessary to reproduce analyses for the Korean
 4. CNV: Association analysis using CNV variants
 5. STR: STR analysis 
 6. PRScs: PRS calculation using european GWAS summary statistics
+7. Cumulative effects: Cumulative effects analysis
