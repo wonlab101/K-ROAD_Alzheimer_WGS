@@ -1,0 +1,1281 @@
+---
+title: "Fig5.PRS plot_PRS_APOE_rare variants"
+output: Fig5
+---
+
+###00. preparing \# Library
+
+```{r}
+  # Last updated: 
+  # project : Figure 5. 
+  
+version <- 'v4'
+
+# Setting environment
+rm(list=ls())
+sessionInfo()
+setwd("~/Library/Mobile Documents/com~apple~CloudDocs/Desktop/SKKU/Projects_SKKU/WGS_AD/00.Paper_writing/plot_250131/")
+DIR_output <- "~/Library/Mobile Documents/com~apple~CloudDocs/Desktop/SKKU/Projects_SKKU/WGS_AD/00.Paper_writing/plot_250131/"
+
+options(stringsAsFactors = F)
+
+library(tidyverse)
+library(extrafont)
+library(ggpubr)
+library(ggplot2)
+library(fmsb)
+library(ggmosaic)
+library(ggalluvial)
+library(dplyr)
+library(DescTools)
+library(broom)
+
+font_import()
+loadfonts()
+
+`%notin%` <- Negate(`%in%`)
+```
+
+#theme
+```{r}
+theme_step1 <- function(base_size = 11, base_family = "",
+                        base_line_size = base_size / 22,
+                        base_rect_size = base_size / 22) {
+  theme(title = element_text(family = 'Arial', size = 18, color = 'black'), text = element_text(family = 'Arial', size = 16, color = 'black'),
+        axis.title = element_text(family = 'Arial', size = 18, color = 'black'), axis.text = element_text(family = 'Arial', size = 16, color = 'black'), 
+        panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+        panel.background = element_rect(fill = "white", colour = NA), axis.line = element_line(colour = "black", size = rel(1)),
+        legend.background = element_rect(color = 'black'), legend.title = element_text(family = 'Arial', size = 16),
+        legend.text = element_text(family = 'Arial', size = 14),
+        legend.direction = "vertical", 
+        legend.box = c("horizontal", "vertical"),
+        legend.spacing.x = unit(0.1, 'cm'),
+        plot.margin = unit(c(0.25, 1, 1, 0.5), 'cm'),
+        axis.title.y = element_text(margin = margin(r = 10, unit = "pt")))
+}
+```
+
+#01. phenotypic variance
+##01. import data
+```{r}
+fn="~/Library/Mobile Documents/com~apple~CloudDocs/Desktop/SKKU/Projects_SKKU/WGS_AD/heritability/250131_heritability_calcualtion_rmNA_RV_SV.txt"
+
+df <- read.table(fn, header = TRUE, sep = "\t")
+df$DX_DAT_CU <- as.factor(df$DX_DAT_CU)
+df$RCL40_visual <- as.factor(df$RCL40_visual)
+
+df$sex <- as.factor(df$sex)
+df$batch <- as.factor(df$batch)
+df$DRC7 <- as.factor(df$DRC7)
+df$Cluster25 <- as.factor(df$Cluster25)
+df$STR <- as.factor(df$STR)
+df$HPSE2 <- as.factor(df$HPSE2)
+```
+
+##02. regression analysis - DX
+#model1
+```{r}
+# Model 1: DX_DAT_CU ~ age + sex + apoe4 + apoe2 + PC1 + ... + PC10
+model1 <- glm(DX_DAT_CU ~ age + sex + batch + apoe4 + apoe2 + PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10, 
+              data = df, 
+              family = binomial)
+```
+
+#model2
+```{r}
+# Model 2: DX_DAT_CU ~ covariates + Nature genetics 2022 snps (n=67)
+model2 <- glm(DX_DAT_CU ~ age + sex + batch + apoe4 + apoe2 + PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 +
+              chr1_207577223_T_C_T + chr2_9558882_A_G_G + chr2_37304796_T_C_T + chr2_127135234_C_T_T + 
+              chr2_202878716_TC_T_T + chr3_155069722_G_A_A + chr4_993555_G_T_G + chr4_11023507_C_T_C + 
+              chr4_40197226_G_C_C + chr5_14724304_T_A_A + chr6_32615322_A_G_G + chr6_41036354_G_A_A +
+              chr6_41181270_A_G_G + chr6_47517390_C_T_T + chr6_114291731_T_C_C + chr7_7817263_T_C_T + 
+              chr7_8204382_T_C_T + chr7_12229967_C_A_C + chr7_28129126_GTCTT_G_GTCTT + chr7_37844191_T_C_T + 
+              chr7_100334426_C_T_T + chr7_143413669_G_A_G + chr8_27362470_C_T_T + chr8_27607795_T_C_T +
+              chr9_104903697_C_G_G + chr10_11676714_A_G_G + chr10_60025170_T_G_G + chr10_80494228_C_T_C +
+              chr10_96266650_G_A_G + chr10_122413396_A_G_A + chr11_47370397_G_A_A + chr11_60254475_G_A_A + 
+              chr11_86157598_T_C_T + chr11_121482368_T_G_G + chr11_121564878_T_C_C + chr12_113281983_T_C_C + 
+              chr14_52924962_A_G_G + chr14_92464917_G_A_A + chr14_92472511_G_A_A + chr14_105761758_A_G_G +
+              chr14_106665591_G_A_A + chr15_50701814_A_G_A + chr15_58764824_T_A_T + chr15_64131307_G_A_G + 
+              chr15_78936857_A_G_A + chr16_30010081_C_T_T + chr16_31111250_C_T_T + chr16_70660097_C_A_A + 
+              chr16_79574511_T_C_C + chr16_81739398_G_A_G + chr16_86420604_T_A_A + chr16_90103687_G_A_A +
+              chr17_1728046_TGAG_T_T + chr17_5233752_G_A_A + chr17_18156140_G_A_G + chr17_44352876_C_T_T + 
+              chr17_46779275_G_C_G + chr17_49219935_T_C_T + chr17_58332680_A_G_G + chr17_63471557_C_T_C + 
+              chr19_1050875_A_G_G + chr19_1854254_G_GC_GC + chr20_413334_A_G_A + chr20_56423488_A_G_G +
+              chr20_63743088_T_C_T + chr21_26101558_C_T_C + chr21_26775872_C_T_T, 
+              data = df, 
+              family = binomial)
+```
+
+#model3
+```{r}
+# Model 3: DX_DAT_CU ~ covariates + Nature genetics 2022 snps (n=67) + K-ROAD snps (n=3)
+model3 <- glm(DX_DAT_CU ~ age + sex + batch + apoe4 + apoe2 + PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 +
+              chr1_207577223_T_C_T + chr2_9558882_A_G_G + chr2_37304796_T_C_T + chr2_127135234_C_T_T + 
+              chr2_202878716_TC_T_T + chr3_155069722_G_A_A + chr4_993555_G_T_G + chr4_11023507_C_T_C + 
+              chr4_40197226_G_C_C + chr5_14724304_T_A_A + chr6_32615322_A_G_G + chr6_41036354_G_A_A +
+              chr6_41181270_A_G_G + chr6_47517390_C_T_T + chr6_114291731_T_C_C + chr7_7817263_T_C_T + 
+              chr7_8204382_T_C_T + chr7_12229967_C_A_C + chr7_28129126_GTCTT_G_GTCTT + chr7_37844191_T_C_T + 
+              chr7_100334426_C_T_T + chr7_143413669_G_A_G + chr8_27362470_C_T_T + chr8_27607795_T_C_T +
+              chr9_104903697_C_G_G + chr10_11676714_A_G_G + chr10_60025170_T_G_G + chr10_80494228_C_T_C +
+              chr10_96266650_G_A_G + chr10_122413396_A_G_A + chr11_47370397_G_A_A + chr11_60254475_G_A_A + 
+              chr11_86157598_T_C_T + chr11_121482368_T_G_G + chr11_121564878_T_C_C + chr12_113281983_T_C_C + 
+              chr14_52924962_A_G_G + chr14_92464917_G_A_A + chr14_92472511_G_A_A + chr14_105761758_A_G_G +
+              chr14_106665591_G_A_A + chr15_50701814_A_G_A + chr15_58764824_T_A_T + chr15_64131307_G_A_G + 
+              chr15_78936857_A_G_A + chr16_30010081_C_T_T + chr16_31111250_C_T_T + chr16_70660097_C_A_A + 
+              chr16_79574511_T_C_C + chr16_81739398_G_A_G + chr16_86420604_T_A_A + chr16_90103687_G_A_A +
+              chr17_1728046_TGAG_T_T + chr17_5233752_G_A_A + chr17_18156140_G_A_G + chr17_44352876_C_T_T + 
+              chr17_46779275_G_C_G + chr17_49219935_T_C_T + chr17_58332680_A_G_G + chr17_63471557_C_T_C + 
+              chr19_1050875_A_G_G + chr19_1854254_G_GC_GC + chr20_413334_A_G_A + chr20_56423488_A_G_G +
+              chr20_63743088_T_C_T + chr21_26101558_C_T_C + chr21_26775872_C_T_T +
+              chr18_10326201_G_C_C + chr6_130364679_G_T_T + chr9_10825595_T_C_C, 
+              data = df, 
+              family = binomial)
+```
+
+#model4
+```{r}
+# Model 3: DX_DAT_CU ~ covariates + Nature genetics 2022 snps (n=67) + K-ROAD snps (n=3) + K-ROAD RV+SV (n=4)
+model4 <- glm(DX_DAT_CU ~ age + sex + batch + apoe4 + apoe2 + PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 +
+              chr1_207577223_T_C_T + chr2_9558882_A_G_G + chr2_37304796_T_C_T + chr2_127135234_C_T_T + 
+              chr2_202878716_TC_T_T + chr3_155069722_G_A_A + chr4_993555_G_T_G + chr4_11023507_C_T_C + 
+              chr4_40197226_G_C_C + chr5_14724304_T_A_A + chr6_32615322_A_G_G + chr6_41036354_G_A_A +
+              chr6_41181270_A_G_G + chr6_47517390_C_T_T + chr6_114291731_T_C_C + chr7_7817263_T_C_T + 
+              chr7_8204382_T_C_T + chr7_12229967_C_A_C + chr7_28129126_GTCTT_G_GTCTT + chr7_37844191_T_C_T + 
+              chr7_100334426_C_T_T + chr7_143413669_G_A_G + chr8_27362470_C_T_T + chr8_27607795_T_C_T +
+              chr9_104903697_C_G_G + chr10_11676714_A_G_G + chr10_60025170_T_G_G + chr10_80494228_C_T_C +
+              chr10_96266650_G_A_G + chr10_122413396_A_G_A + chr11_47370397_G_A_A + chr11_60254475_G_A_A + 
+              chr11_86157598_T_C_T + chr11_121482368_T_G_G + chr11_121564878_T_C_C + chr12_113281983_T_C_C + 
+              chr14_52924962_A_G_G + chr14_92464917_G_A_A + chr14_92472511_G_A_A + chr14_105761758_A_G_G +
+              chr14_106665591_G_A_A + chr15_50701814_A_G_A + chr15_58764824_T_A_T + chr15_64131307_G_A_G + 
+              chr15_78936857_A_G_A + chr16_30010081_C_T_T + chr16_31111250_C_T_T + chr16_70660097_C_A_A + 
+              chr16_79574511_T_C_C + chr16_81739398_G_A_G + chr16_86420604_T_A_A + chr16_90103687_G_A_A +
+              chr17_1728046_TGAG_T_T + chr17_5233752_G_A_A + chr17_18156140_G_A_G + chr17_44352876_C_T_T + 
+              chr17_46779275_G_C_G + chr17_49219935_T_C_T + chr17_58332680_A_G_G + chr17_63471557_C_T_C + 
+              chr19_1050875_A_G_G + chr19_1854254_G_GC_GC + chr20_413334_A_G_A + chr20_56423488_A_G_G +
+              chr20_63743088_T_C_T + chr21_26101558_C_T_C + chr21_26775872_C_T_T +
+              chr18_10326201_G_C_C + chr6_130364679_G_T_T + chr9_10825595_T_C_C +
+                Cluster25 + DRC7 + STR + HPSE2, 
+              data = df, 
+              family = binomial)
+```
+
+```{r}
+# Pseudo R² 
+pseudo_r2_model1 <- PseudoR2(model1, which = "Nagelkerke")
+pseudo_r2_model2 <- PseudoR2(model2, which = "Nagelkerke")
+pseudo_r2_model3 <- PseudoR2(model3, which = "Nagelkerke")
+pseudo_r2_model4 <- PseudoR2(model4, which = "Nagelkerke")
+
+
+# results
+pseudo_r2_model1
+pseudo_r2_model2
+pseudo_r2_model3
+pseudo_r2_model4
+
+
+inc_r2_reported=pseudo_r2_model2-pseudo_r2_model1
+inc_r2_all=pseudo_r2_model3-pseudo_r2_model1
+inc_r2_all_RVSV=pseudo_r2_model4-pseudo_r2_model1
+
+
+```
+##ggplot
+```{r}
+model_data <- data.frame(
+  model = factor(c('Bell', 'K-ROAD', 'K-ROAD_RV_SV'), levels = c('Bell', 'K-ROAD', 'K-ROAD_RV_SV')),
+  r2_value = c(inc_r2_reported * 100, inc_r2_all * 100, inc_r2_all_RVSV * 100)
+)
+
+
+p5.0.1 <- ggplot(model_data, aes(x = model, y = r2_value, fill = model)) +
+  geom_bar(stat = 'identity', width = 0.6, fill = 'darkgrey') +
+    geom_text(aes(label = paste0(round(r2_value, 3),"%")), vjust = -0.5, size = 7) +
+    ggtitle('clinical diagnosis') +
+   ylim(0, 20) + 
+  xlab('') +
+  ylab('Incremental R2 (%)') +
+    theme_step1() +
+  theme(legend.position = "none")  
+
+print(p5.0.1)
+```
+
+##03. regression analysis - Amyloid beta
+#model1
+```{r}
+# Model 1: RCL40_visual ~ age + sex + apoe4 + apoe2 + PC1 + ... + PC10
+model1 <- glm(RCL40_visual ~ age + sex + batch + apoe4 + apoe2 + PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10, 
+              data = df, 
+              family = binomial)
+```
+
+#model2
+```{r}
+# Model 2: RCL40_visual ~ covariates + Nature genetics 2022 snps (n=67)
+model2 <- glm(RCL40_visual ~ age + sex + batch + apoe4 + apoe2 + PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 +
+              chr1_207577223_T_C_T + chr2_9558882_A_G_G + chr2_37304796_T_C_T + chr2_127135234_C_T_T + 
+              chr2_202878716_TC_T_T + chr3_155069722_G_A_A + chr4_993555_G_T_G + chr4_11023507_C_T_C + 
+              chr4_40197226_G_C_C + chr5_14724304_T_A_A + chr6_32615322_A_G_G + chr6_41036354_G_A_A +
+              chr6_41181270_A_G_G + chr6_47517390_C_T_T + chr6_114291731_T_C_C + chr7_7817263_T_C_T + 
+              chr7_8204382_T_C_T + chr7_12229967_C_A_C + chr7_28129126_GTCTT_G_GTCTT + chr7_37844191_T_C_T + 
+              chr7_100334426_C_T_T + chr7_143413669_G_A_G + chr8_27362470_C_T_T + chr8_27607795_T_C_T +
+              chr9_104903697_C_G_G + chr10_11676714_A_G_G + chr10_60025170_T_G_G + chr10_80494228_C_T_C +
+              chr10_96266650_G_A_G + chr10_122413396_A_G_A + chr11_47370397_G_A_A + chr11_60254475_G_A_A + 
+              chr11_86157598_T_C_T + chr11_121482368_T_G_G + chr11_121564878_T_C_C + chr12_113281983_T_C_C + 
+              chr14_52924962_A_G_G + chr14_92464917_G_A_A + chr14_92472511_G_A_A + chr14_105761758_A_G_G +
+              chr14_106665591_G_A_A + chr15_50701814_A_G_A + chr15_58764824_T_A_T + chr15_64131307_G_A_G + 
+              chr15_78936857_A_G_A + chr16_30010081_C_T_T + chr16_31111250_C_T_T + chr16_70660097_C_A_A + 
+              chr16_79574511_T_C_C + chr16_81739398_G_A_G + chr16_86420604_T_A_A + chr16_90103687_G_A_A +
+              chr17_1728046_TGAG_T_T + chr17_5233752_G_A_A + chr17_18156140_G_A_G + chr17_44352876_C_T_T + 
+              chr17_46779275_G_C_G + chr17_49219935_T_C_T + chr17_58332680_A_G_G + chr17_63471557_C_T_C + 
+              chr19_1050875_A_G_G + chr19_1854254_G_GC_GC + chr20_413334_A_G_A + chr20_56423488_A_G_G +
+              chr20_63743088_T_C_T + chr21_26101558_C_T_C + chr21_26775872_C_T_T, 
+              data = df, 
+              family = binomial)
+```
+
+#model3
+```{r}
+# Model 3: RCL40_visual ~ covariates + Nature genetics 2022 snps (n=67) + K-ROAD snps (n=3)
+model3 <- glm(RCL40_visual ~ age + sex + batch + apoe4 + apoe2 + PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 +
+              chr1_207577223_T_C_T + chr2_9558882_A_G_G + chr2_37304796_T_C_T + chr2_127135234_C_T_T + 
+              chr2_202878716_TC_T_T + chr3_155069722_G_A_A + chr4_993555_G_T_G + chr4_11023507_C_T_C + 
+              chr4_40197226_G_C_C + chr5_14724304_T_A_A + chr6_32615322_A_G_G + chr6_41036354_G_A_A +
+              chr6_41181270_A_G_G + chr6_47517390_C_T_T + chr6_114291731_T_C_C + chr7_7817263_T_C_T + 
+              chr7_8204382_T_C_T + chr7_12229967_C_A_C + chr7_28129126_GTCTT_G_GTCTT + chr7_37844191_T_C_T + 
+              chr7_100334426_C_T_T + chr7_143413669_G_A_G + chr8_27362470_C_T_T + chr8_27607795_T_C_T +
+              chr9_104903697_C_G_G + chr10_11676714_A_G_G + chr10_60025170_T_G_G + chr10_80494228_C_T_C +
+              chr10_96266650_G_A_G + chr10_122413396_A_G_A + chr11_47370397_G_A_A + chr11_60254475_G_A_A + 
+              chr11_86157598_T_C_T + chr11_121482368_T_G_G + chr11_121564878_T_C_C + chr12_113281983_T_C_C + 
+              chr14_52924962_A_G_G + chr14_92464917_G_A_A + chr14_92472511_G_A_A + chr14_105761758_A_G_G +
+              chr14_106665591_G_A_A + chr15_50701814_A_G_A + chr15_58764824_T_A_T + chr15_64131307_G_A_G + 
+              chr15_78936857_A_G_A + chr16_30010081_C_T_T + chr16_31111250_C_T_T + chr16_70660097_C_A_A + 
+              chr16_79574511_T_C_C + chr16_81739398_G_A_G + chr16_86420604_T_A_A + chr16_90103687_G_A_A +
+              chr17_1728046_TGAG_T_T + chr17_5233752_G_A_A + chr17_18156140_G_A_G + chr17_44352876_C_T_T + 
+              chr17_46779275_G_C_G + chr17_49219935_T_C_T + chr17_58332680_A_G_G + chr17_63471557_C_T_C + 
+              chr19_1050875_A_G_G + chr19_1854254_G_GC_GC + chr20_413334_A_G_A + chr20_56423488_A_G_G +
+              chr20_63743088_T_C_T + chr21_26101558_C_T_C + chr21_26775872_C_T_T +
+              chr18_10326201_G_C_C + chr6_130364679_G_T_T + chr9_10825595_T_C_C, 
+              data = df, 
+              family = binomial)
+```
+
+#model4
+```{r}
+# Model 3: RCL40_visual ~ covariates + Nature genetics 2022 snps (n=67) + K-ROAD snps (n=3) + K-ROAD RV+SV (n=4)
+model4 <- glm(RCL40_visual ~ age + sex + batch + apoe4 + apoe2 + PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 +
+              chr1_207577223_T_C_T + chr2_9558882_A_G_G + chr2_37304796_T_C_T + chr2_127135234_C_T_T + 
+              chr2_202878716_TC_T_T + chr3_155069722_G_A_A + chr4_993555_G_T_G + chr4_11023507_C_T_C + 
+              chr4_40197226_G_C_C + chr5_14724304_T_A_A + chr6_32615322_A_G_G + chr6_41036354_G_A_A +
+              chr6_41181270_A_G_G + chr6_47517390_C_T_T + chr6_114291731_T_C_C + chr7_7817263_T_C_T + 
+              chr7_8204382_T_C_T + chr7_12229967_C_A_C + chr7_28129126_GTCTT_G_GTCTT + chr7_37844191_T_C_T + 
+              chr7_100334426_C_T_T + chr7_143413669_G_A_G + chr8_27362470_C_T_T + chr8_27607795_T_C_T +
+              chr9_104903697_C_G_G + chr10_11676714_A_G_G + chr10_60025170_T_G_G + chr10_80494228_C_T_C +
+              chr10_96266650_G_A_G + chr10_122413396_A_G_A + chr11_47370397_G_A_A + chr11_60254475_G_A_A + 
+              chr11_86157598_T_C_T + chr11_121482368_T_G_G + chr11_121564878_T_C_C + chr12_113281983_T_C_C + 
+              chr14_52924962_A_G_G + chr14_92464917_G_A_A + chr14_92472511_G_A_A + chr14_105761758_A_G_G +
+              chr14_106665591_G_A_A + chr15_50701814_A_G_A + chr15_58764824_T_A_T + chr15_64131307_G_A_G + 
+              chr15_78936857_A_G_A + chr16_30010081_C_T_T + chr16_31111250_C_T_T + chr16_70660097_C_A_A + 
+              chr16_79574511_T_C_C + chr16_81739398_G_A_G + chr16_86420604_T_A_A + chr16_90103687_G_A_A +
+              chr17_1728046_TGAG_T_T + chr17_5233752_G_A_A + chr17_18156140_G_A_G + chr17_44352876_C_T_T + 
+              chr17_46779275_G_C_G + chr17_49219935_T_C_T + chr17_58332680_A_G_G + chr17_63471557_C_T_C + 
+              chr19_1050875_A_G_G + chr19_1854254_G_GC_GC + chr20_413334_A_G_A + chr20_56423488_A_G_G +
+              chr20_63743088_T_C_T + chr21_26101558_C_T_C + chr21_26775872_C_T_T +
+              chr18_10326201_G_C_C + chr6_130364679_G_T_T + chr9_10825595_T_C_C +
+              Cluster25 + DRC7 + STR + HPSE2, 
+              data = df, 
+              family = binomial)
+```
+
+```{r}
+# Pseudo R² 
+pseudo_r2_model1 <- PseudoR2(model1, which = "Nagelkerke")
+pseudo_r2_model2 <- PseudoR2(model2, which = "Nagelkerke")
+pseudo_r2_model3 <- PseudoR2(model3, which = "Nagelkerke")
+pseudo_r2_model4 <- PseudoR2(model4, which = "Nagelkerke")
+
+
+# results
+pseudo_r2_model1
+pseudo_r2_model2
+pseudo_r2_model3
+pseudo_r2_model4
+
+
+inc_r2_reported=pseudo_r2_model2-pseudo_r2_model1
+inc_r2_all=pseudo_r2_model3-pseudo_r2_model1
+inc_r2_all_RVSV=pseudo_r2_model4-pseudo_r2_model1
+
+
+```
+##ggplot
+```{r}
+model_data <- data.frame(
+  model = factor(c('Bell', 'K-ROAD', 'K-ROAD_RV_SV'), levels = c('Bell', 'K-ROAD', 'K-ROAD_RV_SV')),
+  r2_value = c(inc_r2_reported * 100, inc_r2_all * 100, inc_r2_all_RVSV * 100)
+)
+
+
+p5.0.2 <- ggplot(model_data, aes(x = model, y = r2_value, fill = model)) +
+  geom_bar(stat = 'identity', width = 0.6, fill = 'darkgrey') +
+    geom_text(aes(label = paste0(round(r2_value, 3),"%")), vjust = -0.5, size = 7) +
+    ggtitle('amyloid beta') +
+   ylim(0, 20) + 
+  xlab('') +
+  ylab('Incremental R2 (%)') +
+    theme_step1() +
+  theme(legend.position = "none")  
+
+print(p5.0.2)
+```
+
+#02. Bar plot
+#data
+```{r}
+fn="~/Library/Mobile Documents/com~apple~CloudDocs/Desktop/SKKU/Projects_SKKU/WGS_AD/prs/WGS_1824_phenotype_update.250131.txt"
+df <- read.table(fn, header = TRUE, sep = "\t", na.strings = "NA")
+
+df$RNV <- df$Cluster25
+```
+
+# Function to create Stack chart
+
+```{r}
+create_bar_chart <- function(data, dx) {
+  # Count the frequency of each genetic_effect
+  genetic_effect_counts <- table(data$genetic_effect)
+  
+  # Convert the table to a data frame
+  genetic_effect_df <- as.data.frame(genetic_effect_counts)
+  names(genetic_effect_df) <- c("genetic_effect", "count")
+  
+  # Sort the data frame by count
+  genetic_effect_df <- genetic_effect_df[order(-genetic_effect_df$count), ]
+  
+  # Create the pie chart
+  stack_chart <- ggplot(genetic_effect_df, aes(x = "", y = count, fill = genetic_effect)) +
+  geom_bar(stat = "identity", color = "black") +
+  geom_text(aes(label = count), position = position_stack(vjust = 0.5), color = "black", size = 8) +  # Adjust position and increase text size
+  coord_flip() +  # Flip the coordinates to make it horizontal
+  theme_void() +  # Remove background and gridlines
+  scale_fill_manual(values = color_palette) +
+  theme_step1() +  # Flip coordinates to make the plot vertical
+  theme(axis.line = element_blank(),  # Remove axis lines
+        axis.text =  element_blank(),  
+        axis.ticks = element_blank(),
+        legend.position = "none",  # Set colors
+        plot.title = element_text(hjust = 0.5, vjust = 0.5)) + 
+
+  labs(
+      title = dx,
+    x = "",  # Empty string to remove x-axis label
+    y = ""   # Empty string to remove y-axis label
+  ) 
+  
+
+  
+  return(stack_chart)}
+
+```
+
+
+### p5.1_variant proportion_stack 
+```{r}
+# Preprocess the data
+df_processed <- df %>%
+    mutate(
+    # Divide PRS_abeta_NHW into Top 10% and Others
+    PRS_abeta_NHW_group = ifelse(rank(-PRS_abeta_NHW) <= n() * 0.2, "1", "0"),
+  ) %>%
+  filter(!is.na(DX) & !is.na(RCL40_visual) & !is.na(APOE4) & !is.na(PRS_abeta_NHW_group) & !is.na(RNV) & !is.na(SV)) 
+
+print(nrow(df_processed))
+
+df_processed <- df_processed %>%
+  mutate(genetic_effect = case_when(
+    APOE4 == 0 & PRS_abeta_NHW_group == 0 & RNV == 0 & SV == 0 ~ "non-carrier",
+    APOE4 == 1 & PRS_abeta_NHW_group == 0 & RNV == 0 & SV == 0 ~ "APOE4 only",
+    APOE4 == 0 & PRS_abeta_NHW_group == 1 & RNV == 0 & SV == 0 ~ "PRS only",
+    APOE4 == 0 & PRS_abeta_NHW_group == 0 & RNV == 1 & SV == 0 ~ "RNV only",
+    APOE4 == 0 & PRS_abeta_NHW_group == 0 & RNV == 0 & SV == 1 ~ "SV only",
+    APOE4 == 1 & PRS_abeta_NHW_group == 1 & RNV == 0 & SV == 0 ~ "2 factors",
+    APOE4 == 1 & PRS_abeta_NHW_group == 0 & RNV == 1 & SV == 0 ~ "2 factors",
+    APOE4 == 1 & PRS_abeta_NHW_group == 0 & RNV == 0 & SV == 1 ~ "2 factors",
+    APOE4 == 0 & PRS_abeta_NHW_group == 1 & RNV == 1 & SV == 0 ~ "2 factors",
+    APOE4 == 0 & PRS_abeta_NHW_group == 1 & RNV == 0 & SV == 1 ~ "2 factors",
+    APOE4 == 0 & PRS_abeta_NHW_group == 0 & RNV == 1 & SV == 1 ~ "2 factors",
+    APOE4 == 1 & PRS_abeta_NHW_group == 1 & RNV == 1 & SV == 0 ~ "3 factors",
+    APOE4 == 1 & PRS_abeta_NHW_group == 1 & RNV == 0 & SV == 1 ~ "3 factors",
+    APOE4 == 1 & PRS_abeta_NHW_group == 0 & RNV == 1 & SV == 1 ~ "3 factors",
+    APOE4 == 0 & PRS_abeta_NHW_group == 1 & RNV == 1 & SV == 1 ~ "3 factors",
+    APOE4 == 1 & PRS_abeta_NHW_group == 1 & RNV == 1 & SV == 1 ~ "4 factors",
+    TRUE ~ "Unknown"
+  ))
+
+
+# Define color palette for individuals with color blindness
+color_palette <- c("#762a83", "#9970ab", "#c2a5cf", "#e7d4e8","#d9f0d3", "#a6dba0","#5aae61", "#1b7837")
+
+# Define the levels of genetic_effect in the desired order
+genetic_effect_levels <- c("4 factors","3 factors","2 factors", "APOE4 only", "PRS only","SV only", "RNV only", "non-carrier")
+
+# Reorder the genetic_effect variable according to the defined levels
+df_processed$genetic_effect <- factor(df_processed$genetic_effect, levels = genetic_effect_levels)
+
+write.csv(df_processed, "genetic_effect_RNVonly_250203.csv", row.names = FALSE)
+
+```
+
+```{r}
+# APOE4 only
+count_APOE4_only <- df_processed %>%
+  filter(genetic_effect == "APOE4 only") %>%
+  count()
+count_APOE4_only
+```
+
+```{r}
+##All samples
+plot_name <- "p5.1.1"
+print(paste("Plotting for: All"))
+assign(plot_name, create_bar_chart(df_processed, "All"))
+  print(get(plot_name))
+
+
+  
+# Clinical diangosis
+unique_DX <-  c("DAT", "MCI", "CU")
+i <- 1
+for (dx in unique_DX) {
+  dx_data <- subset(df_processed, DX == dx)
+  
+  # Define plot names
+  i <- i + 1
+  plot_name <- paste("p5.1.", i, sep = "")
+  
+  print(paste("Plotting for DX:", dx))
+  
+  # Create pie chart and assign to plot_name
+  assign(plot_name, create_bar_chart(dx_data, dx))
+  
+  # Print the plot
+  print(get(plot_name))
+}
+  
+#Amyloid beta
+unique_RCL40_visual <- unique(df_processed$RCL40_visual)
+i <- 3
+for (abeta in unique_RCL40_visual) {
+  i <- i + 1
+  abeta_data <- subset(df_processed, RCL40_visual == abeta)
+  # Define plot names
+  plot_name <- paste("p5.1.", i + 1, sep = "")
+  
+    if (abeta == 0) {
+    abeta_title <- "Amyloid beta negative"
+  } else {
+    abeta_title <- "Amyloid beta positive"
+  }
+  
+    print(paste("Plotting for abeta:", abeta_title))
+
+  
+  # Create pie chart and assign to plot_name
+  assign(plot_name, create_bar_chart(abeta_data, abeta_title))
+  
+  # Print the plot
+  print(get(plot_name))
+}
+
+```
+
+### p5.2_Violin plot
+##data
+```{r}
+
+# Preprocess the data
+df_processed <- df %>%
+    mutate(
+    # Divide PRS_abeta_NHW into Top 10% and Others
+    PRS_abeta_NHW_group = ifelse(rank(-PRS_abeta_NHW) <= n() * 0.2, "1", "0"),
+  ) %>%
+  filter(!is.na(DX) & !is.na(RCL40_visual) & !is.na(APOE4) & !is.na(PRS_abeta_NHW_group) & !is.na(RNV) & !is.na(SV)) 
+
+print(nrow(df_processed))
+
+df_processed <- df_processed %>%
+  mutate(genetic_effect = case_when(
+    APOE4 == 0 & PRS_abeta_NHW_group == 0 & RNV == 0 & SV == 0 ~ "non-carrier",
+    APOE4 == 1 & PRS_abeta_NHW_group == 0 & RNV == 0 & SV == 0 ~ "APOE4 only",
+    APOE4 == 0 & PRS_abeta_NHW_group == 1 & RNV == 0 & SV == 0 ~ "PRS only",
+    APOE4 == 0 & PRS_abeta_NHW_group == 0 & RNV == 1 & SV == 0 ~ "RNV only",
+    APOE4 == 0 & PRS_abeta_NHW_group == 0 & RNV == 0 & SV == 1 ~ "SV only",
+    APOE4 == 1 & PRS_abeta_NHW_group == 1 & RNV == 0 & SV == 0 ~ "2 factors",
+    APOE4 == 1 & PRS_abeta_NHW_group == 0 & RNV == 1 & SV == 0 ~ "2 factors",
+    APOE4 == 1 & PRS_abeta_NHW_group == 0 & RNV == 0 & SV == 1 ~ "2 factors",
+    APOE4 == 0 & PRS_abeta_NHW_group == 1 & RNV == 1 & SV == 0 ~ "2 factors",
+    APOE4 == 0 & PRS_abeta_NHW_group == 1 & RNV == 0 & SV == 1 ~ "2 factors",
+    APOE4 == 0 & PRS_abeta_NHW_group == 0 & RNV == 1 & SV == 1 ~ "2 factors",
+    APOE4 == 1 & PRS_abeta_NHW_group == 1 & RNV == 1 & SV == 0 ~ "3 factors",
+    APOE4 == 1 & PRS_abeta_NHW_group == 1 & RNV == 0 & SV == 1 ~ "3 factors",
+    APOE4 == 1 & PRS_abeta_NHW_group == 0 & RNV == 1 & SV == 1 ~ "3 factors",
+    APOE4 == 0 & PRS_abeta_NHW_group == 1 & RNV == 1 & SV == 1 ~ "3 factors",
+    APOE4 == 1 & PRS_abeta_NHW_group == 1 & RNV == 1 & SV == 1 ~ "4 factors",
+    TRUE ~ "Unknown"
+  ))
+
+df_processed <- df_processed[df_processed$genetic_effect != "4 factors", ]
+
+# Define color palette for individuals with color blindness
+color_palette <- rev(c("#762a83", "#9970ab", "#c2a5cf", "#e7d4e8","#d9f0d3", "#a6dba0","#5aae61", "#1b7837"))
+
+# Define the levels of genetic_effect in the desired order
+genetic_effect_levels <- rev(c("3 factors","2 factors", "APOE4 only", "PRS only","SV only", "RNV only", "non-carrier"))
+
+# Reorder the genetic_effect variable according to the defined levels
+df_processed$genetic_effect <- factor(df_processed$genetic_effect, levels = genetic_effect_levels)
+
+
+# Count the occurrences of each level of genetic_effect
+genetic_effect_counts <- df_processed %>%
+  count(genetic_effect) %>%
+  arrange(desc(genetic_effect))
+
+# Create a new column combining genetic_effect levels with counts
+genetic_effect_levels_with_counts <- genetic_effect_counts %>%
+  mutate(genetic_effect_with_count = paste0(genetic_effect, " (n=", n, ")"))
+
+# Define the levels of genetic_effect_with_count in the desired order
+genetic_effect_levels_with_counts <- genetic_effect_levels_with_counts %>%
+  mutate(genetic_effect_with_count = factor(genetic_effect_with_count, levels = rev(paste0(genetic_effect, " (n=", n, ")"))))
+
+# Merge the counts with the original data
+df_processed <- left_join(df_processed, genetic_effect_levels_with_counts, by = "genetic_effect")
+
+```
+
+##Violin plot
+```{r}
+# Define the list of variables
+variables <- c("RCL_global","MMSE", "CDRSB", "Verbal_memory", "Visual_memory")
+
+# Loop through each variable
+for (i in seq_along(variables)) {
+  variable <- variables[i]
+  
+  # Create violin plot for the current variable
+  p_violin <- df_processed %>% 
+    ggplot(aes(x = genetic_effect_with_count, y = !!sym(variable), fill = genetic_effect_with_count)) +
+    geom_violin() +
+    geom_boxplot(width = 0.2, fill = "white", color = "black") +
+    labs(
+      title = "",
+      x = "Genetic effects",
+      y = gsub("_", " ", variable),  # Replace underscores with spaces in the y-axis label
+      fill = "Genetic effects"
+    ) +
+    scale_fill_manual(values = color_palette) +
+    theme_step1() +
+    theme(legend.position = "none")  # Remove legend
+    
+  # If this is the last plot, apply modified theme settings
+  if (i == length(variables)) {
+    p_violin <- p_violin +
+      theme(axis.title.x = element_blank(),
+            axis.text.x = element_text(angle = 40, hjust = 1),  # Rotate x-axis labels by 45 degrees
+            axis.ticks.x = element_blank())  # Remove x-axis ticks
+  } else {
+    # For other plots, remove x-axis elements entirely
+    p_violin <- p_violin +
+      theme(axis.title.x = element_blank(),
+            axis.text.x = element_blank(),
+            axis.ticks.x = element_blank())
+  }
+  
+  # Print the plot
+  print(p_violin)
+  
+  # Assign the plot to p5.2.i where i is the index of the variable in the loop
+  assign(paste0("p5.2.", i), p_violin)
+}
+
+```
+
+##linear regression
+```{r}
+# Define the list of dependent variables
+dependent_variables <- c("MMSE", "CDRSB", "Verbal_memory", "Visual_memory", "RCL_global")
+
+# Define the list of clusters
+clusters <- c("3 factors","2 factors", "APOE4 only", "PRS only","SV only", "RNV only")
+
+# Initialize an empty dataframe to store the results
+result_df <- data.frame()
+
+# Loop over each dependent variable
+for (dependent_variable in dependent_variables) {
+  # Loop over each pair of clusters
+  for (cluster in clusters) {
+
+      # Subset the data for the current pair of clusters
+      df_subset <- df_processed[df_processed$genetic_effect %in% c("non-carrier", cluster), ]
+      
+        # Convert "sex" and "batch" to factor variables
+        df_subset$sex <- factor(df_subset$sex)
+        df_subset$batch <- factor(df_subset$batch)
+        
+        df_subset$genetic_effect <- ifelse(df_subset$genetic_effect == "non-carrier", 0, 1)
+        
+        # Create the formula for linear regression
+        formula <- as.formula(paste(dependent_variable, "~ age + sex + PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + education +batch+ genetic_effect", sep = ""))
+        
+      # Fit linear regression model
+      linear_model <- lm(formula, data = df_subset)
+      
+      # Print summary of the model
+      summary_output <- summary(linear_model)
+      grep_output <- summary_output$coefficients["genetic_effect", , drop = FALSE]
+      
+      # Convert grep_output to dataframe
+      grep_output_df <- as.data.frame(grep_output)
+      
+      # Add information about dependent variable and clusters
+      grep_output_df$Dependent_Variable <- dependent_variable
+      grep_output_df$Cluster <- cluster
+
+      # Bind the current grep_output to result_df
+      result_df <- rbind(result_df, grep_output_df)
+    }}
+
+
+# Apply FDR correction to p-values
+result_df$FDR_adjusted_p_value <- p.adjust(result_df$"Pr(>|t|)", method = "fdr")
+
+# Define significance based on FDR-adjusted p-values
+result_df$P_value <- ifelse(result_df$FDR_adjusted_p_value < 0.05, "Significant", "Non-significant")
+
+# Subset the significant results
+significant_df <- subset(result_df, P_value == "Significant")
+print(significant_df)
+
+write.table(significant_df, "genetic_effect_significant_RNVonly_240916.txt", sep = "\t", row.names = FALSE)
+
+
+```
+
+### 5.3 APOE vs APOE&additional 
+
+##data
+```{r}
+# Preprocess the data
+df_processed <- df %>%
+  mutate(
+    # Divide PRS_abeta_NHW into Top 10% and Others
+    PRS_abeta_NHW_group = ifelse(rank(-PRS_abeta_NHW) <= n() * 0.2, "1", "0"))%>%
+   mutate(
+    # Divide KROAD_PRS into Top 10% and Others
+    KROAD_PRS_group = ifelse(rank(-KROAD_PRS) <= n() * 0.2, "1", "0")
+  )%>%
+  filter(!is.na(DX) & !is.na(RCL40_visual) & !is.na(APOE4) & !is.na(PRS_abeta_NHW_group) &!is.na(KROAD_PRS_group) & !is.na(RNV) & !is.na(SV)) 
+
+print(nrow(df_processed))
+
+# Create genetic_effect variables for different combinations of APOE4 and PRS_abeta_NHW_group
+df_processed <- df_processed %>%
+  mutate(
+    genetic_effect_PRS_Eur = case_when(
+    APOE4 == 1 & PRS_abeta_NHW_group == 0 & KROAD_PRS_group == 0 & RNV == 0 & SV == 0 ~ "APOE4 only",
+      APOE4 == 1 & PRS_abeta_NHW_group == 1 ~ "APOE&PRS(Bellenguez)",
+          TRUE ~ NA_character_
+    ),
+        genetic_effect_PRS_Kor = case_when(
+    APOE4 == 1 & PRS_abeta_NHW_group == 0 & KROAD_PRS_group == 0 & RNV == 0 & SV == 0 ~ "APOE4 only",
+      APOE4 == 1 & KROAD_PRS_group == 1 ~ "APOE&PRS(K-ROAD)",
+          TRUE ~ NA_character_
+    ),
+    genetic_effect_RNV = case_when(
+    APOE4 == 1 & PRS_abeta_NHW_group == 0 & KROAD_PRS_group == 0 & RNV == 0 & SV == 0 ~ "APOE4 only",
+      APOE4 == 1 & RNV == 1 ~ "APOE&RNV",
+      TRUE ~ NA_character_
+    ),
+    genetic_effect_SV = case_when(
+    APOE4 == 1 & PRS_abeta_NHW_group == 0 & KROAD_PRS_group == 0 & RNV == 0 & SV == 0 ~ "APOE4 only",
+      APOE4 == 1 & SV == 1 ~ "APOE&SV",
+      TRUE ~ NA_character_
+    )
+  ) 
+
+print(nrow(df_processed))
+
+```
+
+
+```{r}
+# APOE4 only
+df_processed %>%
+  filter(genetic_effect_PRS_Eur == "APOE4 only") %>%
+  count()
+
+# APOE4 & PRS
+ df_processed %>%
+  filter(genetic_effect_PRS_Eur == "APOE&PRS(Bellenguez)") %>%
+  count()
+
+ # APOE4 & PRS
+ df_processed %>%
+  filter(genetic_effect_PRS_Kor == "APOE&PRS(K-ROAD)") %>%
+  count()
+
+ 
+# APOE4 & RNV
+df_processed %>%
+  filter(genetic_effect_RNV == "APOE&RNV") %>%
+  count()
+
+# APOE4 & SV
+df_processed %>%
+  filter(genetic_effect_SV == "APOE&SV") %>%
+  count()
+
+
+```
+
+
+###Linear regression
+```{r}
+dependent_variables <- c("MMSE", "CDRSB", "Verbal_memory", "Visual_memory", "RCL_global")
+result_df <- data.frame()
+
+# Subset the data for PRS genetic effect
+df_subset_PRS_Eur <- df_processed %>%
+  filter(genetic_effect_PRS_Eur == "APOE4 only" | genetic_effect_PRS_Eur == "APOE&PRS(Bellenguez)") %>%
+  mutate(genetic_effect_PRS_binary = ifelse(genetic_effect_PRS_Eur == "APOE4 only", 0, 1))
+
+# Convert "sex" and "batch" to factor variables for PRS
+df_subset_PRS_Eur$sex <- factor(df_subset_PRS_Eur$sex)
+df_subset_PRS_Eur$batch <- factor(df_subset_PRS_Eur$batch)
+
+# Loop over each dependent variable for PRS
+for (dependent_variable in dependent_variables) {
+  # Create the formula for linear regression for PRS
+  formula_PRS <- as.formula(paste0(dependent_variable, "~ age + sex + PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + education + batch + genetic_effect_PRS_binary"))
+
+  # Fit linear regression model for PRS
+  linear_model_PRS <- lm(formula_PRS, data = df_subset_PRS_Eur)
+
+  # Print summary of the model for PRS
+  summary_output_PRS <- summary(linear_model_PRS)
+
+  # Extract information related to genetic_effect_PRS from the summary
+  genetic_effect_summary_PRS <- summary_output_PRS$coefficients["genetic_effect_PRS_binary", ]
+  grep_output_df_PRS <- as.data.frame(t(genetic_effect_summary_PRS))
+
+  # Add information about subset, dependent variable, and variants for PRS
+  grep_output_df_PRS$Dependent_Variable <- dependent_variable
+  grep_output_df_PRS$Genetic_Effect <- "APOE4 only"
+  grep_output_df_PRS$Genetic_Effect_Plus <- "APOE&PRS(Bellenguez)"
+  grep_output_df_PRS$type <- "PRS(Bellenguez)"
+
+  # Bind the current grep_output to result_df for PRS
+  result_df <- rbind(result_df, grep_output_df_PRS)
+}
+
+
+# Subset the data for PRS genetic effect
+df_subset_PRS_Kor <- df_processed %>%
+  filter(genetic_effect_PRS_Kor == "APOE4 only" | genetic_effect_PRS_Kor == "APOE&PRS(K-ROAD)") %>%
+  mutate(genetic_effect_PRS_binary = ifelse(genetic_effect_PRS_Kor == "APOE4 only", 0, 1))
+
+# Convert "sex" and "batch" to factor variables for PRS
+df_subset_PRS_Kor$sex <- factor(df_subset_PRS_Kor$sex)
+df_subset_PRS_Kor$batch <- factor(df_subset_PRS_Kor$batch)
+
+# Loop over each dependent variable for PRS
+for (dependent_variable in dependent_variables) {
+  # Create the formula for linear regression for PRS
+  formula_PRS <- as.formula(paste0(dependent_variable, "~ age + sex + PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + education + batch + genetic_effect_PRS_binary"))
+
+  # Fit linear regression model for PRS
+  linear_model_PRS <- lm(formula_PRS, data = df_subset_PRS_Kor)
+
+  # Print summary of the model for PRS
+  summary_output_PRS <- summary(linear_model_PRS)
+
+  # Extract information related to genetic_effect_PRS from the summary
+  genetic_effect_summary_PRS <- summary_output_PRS$coefficients["genetic_effect_PRS_binary", ]
+  grep_output_df_PRS <- as.data.frame(t(genetic_effect_summary_PRS))
+
+  # Add information about subset, dependent variable, and variants for PRS
+  grep_output_df_PRS$Dependent_Variable <- dependent_variable
+  grep_output_df_PRS$Genetic_Effect <- "APOE4 only"
+  grep_output_df_PRS$Genetic_Effect_Plus <- "APOE&PRS(K-ROAD)"
+  grep_output_df_PRS$type <- "PRS(K-ROAD)"
+
+  # Bind the current grep_output to result_df for PRS
+  result_df <- rbind(result_df, grep_output_df_PRS)
+}
+
+# Subset the data for RNV genetic effect
+df_subset_RNV <- df_processed %>%
+  filter(genetic_effect_RNV == "APOE4 only" | genetic_effect_RNV == "APOE&RNV") %>%
+  mutate(genetic_effect_RNV_binary = ifelse(genetic_effect_RNV == "APOE4 only", 0, 1))
+
+# Convert "sex" and "batch" to factor variables for RNV
+df_subset_RNV$sex <- factor(df_subset_RNV$sex)
+df_subset_RNV$batch <- factor(df_subset_RNV$batch)
+
+# Loop over each dependent variable for RNV
+for (dependent_variable in dependent_variables) {
+  # Create the formula for linear regression for RNV
+  formula_RNV <- as.formula(paste0(dependent_variable, "~ age + sex + PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + education + batch + genetic_effect_RNV_binary"))
+
+  # Fit linear regression model for RNV
+  linear_model_RNV <- lm(formula_RNV, data = df_subset_RNV)
+
+  # Print summary of the model for RNV
+  summary_output_RNV <- summary(linear_model_RNV)
+
+  # Extract information related to genetic_effect_RNV from the summary
+  genetic_effect_summary_RNV <- summary_output_RNV$coefficients["genetic_effect_RNV_binary", ]
+  grep_output_df_RNV <- as.data.frame(t(genetic_effect_summary_RNV))
+
+  # Add information about subset, dependent variable, and variants for RNV
+  grep_output_df_RNV$Dependent_Variable <- dependent_variable
+  grep_output_df_RNV$Genetic_Effect <- "APOE4 only"
+  grep_output_df_RNV$Genetic_Effect_Plus <- "APOE&RNV"
+  grep_output_df_RNV$type <- "RNV"
+
+  # Bind the current grep_output to result_df for RNV
+  result_df <- rbind(result_df, grep_output_df_RNV)
+}
+
+# Subset the data for SV genetic effect
+df_subset_SV <- df_processed %>%
+  filter(genetic_effect_SV == "APOE4 only" | genetic_effect_SV == "APOE&SV") %>%
+  mutate(genetic_effect_SV_binary = ifelse(genetic_effect_SV == "APOE4 only", 0, 1))
+
+# Convert "sex" and "batch" to factor variables for SV
+df_subset_SV$sex <- factor(df_subset_SV$sex)
+df_subset_SV$batch <- factor(df_subset_SV$batch)
+
+# Loop over each dependent variable for SV
+for (dependent_variable in dependent_variables) {
+  # Create the formula for linear regression for SV
+  formula_SV <- as.formula(paste0(dependent_variable, "~ age + sex + PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + education + batch + genetic_effect_SV_binary"))
+
+  # Fit linear regression model for SV
+  linear_model_SV <- lm(formula_SV, data = df_subset_SV)
+
+  # Print summary of the model for SV
+  summary_output_SV <- summary(linear_model_SV)
+
+  # Extract information related to genetic_effect_SV from the summary
+  genetic_effect_summary_SV <- summary_output_SV$coefficients["genetic_effect_SV_binary", ]
+  grep_output_df_SV <- as.data.frame(t(genetic_effect_summary_SV))
+
+  # Add information about subset, dependent variable, and variants for SV
+  grep_output_df_SV$Dependent_Variable <- dependent_variable
+  grep_output_df_SV$Genetic_Effect <- "APOE4 only"
+  grep_output_df_SV$Genetic_Effect_Plus <- "APOE&SV"
+  grep_output_df_SV$type <- "SV"
+
+  # Bind the current grep_output to result_df for SV
+  result_df <- rbind(result_df, grep_output_df_SV)
+}
+
+```
+
+
+```{r}
+result_df$Dependent_Variable <- gsub("_", " ", result_df$Dependent_Variable)
+
+# Define the list of target Dependent_Variable values
+target_variables <- c("MMSE", "CDRSB", "Verbal memory", "Visual memory")
+
+# Filter result_df_subset to include only rows where Dependent_Variable is in target_variables
+filtered_result_df <- result_df %>%
+  filter(Dependent_Variable %in% target_variables)
+
+filtered_result_df$fdr <- p.adjust(filtered_result_df$`Pr(>|t|)`, method = "fdr")
+filtered_result_df$P_value <- ifelse(filtered_result_df$fdr < 0.05, "Significant", "Non-significant")
+
+# Create a data frame with the additional rows for "APOE only"
+apoe_only_rows <- data.frame(
+  Estimate = 0,                  # Set Estimate to 1
+  `Std. Error` = 0,              # Set Standard Error to 0
+  `t value` = 0,                 # Set t value to 0
+  `Pr(>|t|)` = 0,                # Set Pr(>|t|) to 0
+  Dependent_Variable = unique(filtered_result_df$Dependent_Variable),  # Add unique Dependent Variables
+  Genetic_Effect = "APOE only",  # Set Genetic Effect to "APOE only"
+  Genetic_Effect_Plus = NA,      # Optional if you don't need this
+  type = "APOE",                 # Set type to distinguish APOE only
+  fdr = 0,
+  P_value = "Non-significant"    # Set P-value as Non-significant
+)
+
+colnames(apoe_only_rows) <- colnames(filtered_result_df)
+
+filtered_result_df <- rbind(filtered_result_df, apoe_only_rows)
+
+# Forest plot 그리기 (variants 및 Dependent_Variable 별로 나눔)
+p5.3.2 <-ggplot(filtered_result_df, aes(x = Estimate, y = Dependent_Variable, xmin = Estimate - 1.96*`Std. Error`, xmax = Estimate + 1.96*`Std. Error`, color = P_value)) +
+  geom_point(size = 3) +
+  geom_errorbarh(height = 0.2) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey") +
+  labs(title = "", x = "Estimate", y = NULL, color = "P-value") +
+  scale_color_manual(values = c("black", "red"), labels = c("Non-significant", "Significant")) +
+  theme_step1() +
+  facet_grid( type~. , scales = "free", space = "free") +
+  theme(legend.position = "none")  
+
+print(p5.3.2)
+```
+
+
+
+###Logistic regression
+```{r}
+dependent_variables <- c("RCL40_visual")
+result_df <- data.frame()
+
+# Subset the data for PRS genetic effect
+df_subset_PRS_Eur <- df_processed %>%
+  filter(genetic_effect_PRS_Eur == "APOE4 only" | genetic_effect_PRS_Eur == "APOE&PRS(Bellenguez)") %>%
+  mutate(genetic_effect_PRS_binary = ifelse(genetic_effect_PRS_Eur == "APOE4 only", 0, 1))
+
+# Convert "sex" and "batch" to factor variables for PRS
+df_subset_PRS_Eur$sex <- factor(df_subset_PRS_Eur$sex)
+df_subset_PRS_Eur$batch <- factor(df_subset_PRS_Eur$batch)
+
+# Loop over each dependent variable for PRS
+for (dependent_variable in dependent_variables) {
+  # Create the formula for logistic regression for PRS
+  formula_PRS <- as.formula(paste0(dependent_variable, "~ age + sex + PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + education + batch + genetic_effect_PRS_binary"))
+
+  # Fit logistic regression model for PRS
+  logistic_model_PRS <- glm(formula_PRS, data = df_subset_PRS_Eur, family = binomial)
+
+  # Print summary of the model for PRS
+  summary_output_PRS <- summary(logistic_model_PRS)
+
+  # Extract information related to genetic_effect_PRS from the summary
+  genetic_effect_summary_PRS <- summary_output_PRS$coefficients["genetic_effect_PRS_binary", ]
+  grep_output_df_PRS <- as.data.frame(t(genetic_effect_summary_PRS))
+  
+  # Add information about subset, dependent variable, and variants for PRS
+  grep_output_df_PRS$Dependent_Variable <- dependent_variable
+  grep_output_df_PRS$Genetic_Effect <- "APOE4 only (n=328)"
+  grep_output_df_PRS$Genetic_Effect_Plus <- "APOE&PRS(Bellenguez) (n=181)"
+  grep_output_df_PRS$type <- "PRS(Bellenguez)"
+
+  # Bind the current grep_output to result_df for PRS
+  result_df <- rbind(result_df, grep_output_df_PRS)
+}
+
+# Subset the data for PRS genetic effect
+df_subset_PRS_Kor <- df_processed %>%
+  filter(genetic_effect_PRS_Kor == "APOE4 only" | genetic_effect_PRS_Kor == "APOE&PRS(K-ROAD)") %>%
+  mutate(genetic_effect_PRS_binary = ifelse(genetic_effect_PRS_Kor == "APOE4 only", 0, 1))
+
+# Convert "sex" and "batch" to factor variables for PRS
+df_subset_PRS_Kor$sex <- factor(df_subset_PRS_Kor$sex)
+df_subset_PRS_Kor$batch <- factor(df_subset_PRS_Kor$batch)
+
+# Loop over each dependent variable for PRS
+for (dependent_variable in dependent_variables) {
+  # Create the formula for logistic regression for PRS
+  formula_PRS <- as.formula(paste0(dependent_variable, "~ age + sex + PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + education + batch + genetic_effect_PRS_binary"))
+
+  # Fit logistic regression model for PRS
+  logistic_model_PRS <- glm(formula_PRS, data = df_subset_PRS_Kor, family = binomial)
+
+  # Print summary of the model for PRS
+  summary_output_PRS <- summary(logistic_model_PRS)
+
+  # Extract information related to genetic_effect_PRS from the summary
+  genetic_effect_summary_PRS <- summary_output_PRS$coefficients["genetic_effect_PRS_binary", ]
+  grep_output_df_PRS <- as.data.frame(t(genetic_effect_summary_PRS))
+  
+  # Add information about subset, dependent variable, and variants for PRS
+  grep_output_df_PRS$Dependent_Variable <- dependent_variable
+  grep_output_df_PRS$Genetic_Effect <- "APOE4 only (n=328)"
+  grep_output_df_PRS$Genetic_Effect_Plus <- "APOE&PRS(K-ROAD) (n=167)"
+  grep_output_df_PRS$type <- "PRS(K-ROAD)"
+
+  # Bind the current grep_output to result_df for PRS
+  result_df <- rbind(result_df, grep_output_df_PRS)
+}
+
+
+# Subset the data for RNV genetic effect
+df_subset_RNV <- df_processed %>%
+  filter(genetic_effect_RNV == "APOE4 only" | genetic_effect_RNV == "APOE&RNV") %>%
+  mutate(genetic_effect_RNV_binary = ifelse(genetic_effect_RNV == "APOE4 only", 0, 1))
+
+# Convert "sex" and "batch" to factor variables for RNV
+df_subset_RNV$sex <- factor(df_subset_RNV$sex)
+df_subset_RNV$batch <- factor(df_subset_RNV$batch)
+
+# Loop over each dependent variable for RNV
+for (dependent_variable in dependent_variables) {
+  # Create the formula for logistic regression for RNV
+  formula_RNV <- as.formula(paste0(dependent_variable, "~ age + sex + PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + education + batch + genetic_effect_RNV_binary"))
+
+  # Fit linear regression model for RNV
+  logistic_model_RNV <- glm(formula_RNV, data = df_subset_RNV, family = binomial)
+
+  # Print summary of the model for RNV
+  summary_output_RNV <- summary(logistic_model_RNV)
+
+  # Extract information related to genetic_effect_RNV from the summary
+  genetic_effect_summary_RNV <- summary_output_RNV$coefficients["genetic_effect_RNV_binary", ]
+  grep_output_df_RNV <- as.data.frame(t(genetic_effect_summary_RNV))
+  
+  # Add information about subset, dependent variable, and variants for RNV
+  grep_output_df_RNV$Dependent_Variable <- dependent_variable
+  grep_output_df_RNV$Genetic_Effect <- "APOE4 only (n=328)"
+  grep_output_df_RNV$Genetic_Effect_Plus <- "APOE&RNV (n=37)"
+  grep_output_df_RNV$type <- "RNV"
+
+  # Bind the current grep_output to result_df for RNV
+  result_df <- rbind(result_df, grep_output_df_RNV)
+}
+
+# Subset the data for SV genetic effect
+df_subset_SV <- df_processed %>%
+  filter(genetic_effect_SV == "APOE4 only" | genetic_effect_SV == "APOE&SV") %>%
+  mutate(genetic_effect_SV_binary = ifelse(genetic_effect_SV == "APOE4 only", 0, 1))
+
+# Convert "sex" and "batch" to factor variables for SV
+df_subset_SV$sex <- factor(df_subset_SV$sex)
+df_subset_SV$batch <- factor(df_subset_SV$batch)
+
+# Loop over each dependent variable for SV
+for (dependent_variable in dependent_variables) {
+  # Create the formula for logistic regression for SV
+  formula_SV <- as.formula(paste0(dependent_variable, "~ age + sex + PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + education + batch + genetic_effect_SV_binary"))
+
+  # Fit logistic regression model for SV
+  logistic_model_SV <- glm(formula_SV, data = df_subset_SV, family = binomial)
+
+  # Print summary of the model for SV
+  summary_output_SV <- summary(logistic_model_SV)
+
+  # Extract information related to genetic_effect_SV from the summary
+  genetic_effect_summary_SV <- summary_output_SV$coefficients["genetic_effect_SV_binary", ]
+  grep_output_df_SV <- as.data.frame(t(genetic_effect_summary_SV))
+  
+  # Add information about subset, dependent variable, and variants for SV
+  grep_output_df_SV$Dependent_Variable <- dependent_variable
+  grep_output_df_SV$Genetic_Effect <- "APOE4 only (n=328)"
+  grep_output_df_SV$Genetic_Effect_Plus <- "APOE&SV (n=42)"
+  grep_output_df_SV$type <- "SV"
+
+  # Bind the current grep_output to result_df for SV
+  result_df <- rbind(result_df, grep_output_df_SV)
+}
+```
+
+```{r}
+
+result_df$Dependent_Variable <- gsub("_", " ", result_df$Dependent_Variable)
+
+# Define the list of target Dependent_Variable values
+target_variables <- c("RCL40 visual")
+
+# Filter result_df_subset to include only rows where Dependent_Variable is in target_variables
+filtered_result_df <- result_df %>%
+  filter(Dependent_Variable %in% target_variables)
+
+filtered_result_df$fdr <- p.adjust(filtered_result_df$`Pr(>|z|)`, method = "fdr")
+filtered_result_df$P_value <- ifelse(filtered_result_df$fdr < 0.05, "Significant", "Non-significant")
+
+
+# Create a data frame with the additional rows for "APOE only"
+apoe_only_rows <- data.frame(
+  Estimate = 0,                  # Set Estimate to 1
+  `Std. Error` = 0,              # Set Standard Error to 0
+  `z value` = 0,                 # Set t value to 0
+  `Pr(>|z|)` = 0,                # Set Pr(>|t|) to 0
+  Dependent_Variable = unique(filtered_result_df$Dependent_Variable),  # Add unique Dependent Variables
+  Genetic_Effect = "APOE only",  # Set Genetic Effect to "APOE only"
+  Genetic_Effect_Plus = NA,      # Optional if you don't need this
+  type = "APOE",                 # Set type to distinguish APOE only
+  fdr = 0,
+  P_value = "Non-significant"    # Set P-value as Non-significant
+
+)
+
+colnames(apoe_only_rows) <- colnames(filtered_result_df)
+
+filtered_result_df <- rbind(filtered_result_df, apoe_only_rows)
+
+# Forest plot 그리기 (variants 및 Dependent_Variable 별로 나눔)
+p5.3.1.2 <- ggplot(filtered_result_df, aes(x = Estimate, y = Dependent_Variable, xmin = Estimate - 1.96*`Std. Error`, xmax = Estimate + 1.96*`Std. Error`,color = P_value)) +
+  geom_point(size = 3) +
+  geom_errorbarh(height = 0.2) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey") +
+  labs(title = "", x = "logOR", y = NULL, color = "P-value") +
+  scale_color_manual(values = c("black", "red"), labels = c("Non-significant", "Significant")) +
+  facet_grid( type~. , scales = "free", space = "free") +
+  theme_step1() +
+  theme(legend.position = "none")  
+
+
+print(p5.3.1.2)
+```
+
+### 5.5 PRS 5groups
+```{r}
+
+df_processed <- df_processed %>%
+  mutate(APOE_RNV_SV = case_when(
+    APOE4 == 1 | RNV == 1 | SV == 1 ~ 1,  # Set to 1 if any of the variables is 1
+    TRUE ~ 0  # Otherwise set to 0
+  ))
+
+# Convert APOE_RNV_SV to descriptive factor levels
+df_processed$APOE_RNV_SV <- factor(df_processed$APOE_RNV_SV, levels = c(0, 1), labels = c("non-carrier", "carrier"))
+
+
+# Step 1: Create quantile groups for PRS_abeta_NHW
+df_processed <- df_processed %>%
+  mutate(PRS_abeta_NHW_group = cut(PRS_abeta_NHW, 
+                                   breaks = quantile(PRS_abeta_NHW, probs = seq(0, 1, by = 0.2), na.rm = TRUE),
+                                   include.lowest = TRUE,
+                                   labels = c("0-20%", "20-40%", "40-60%", "60-80%", "80-100%")))
+
+
+# Count combinations of PRS_abeta_NHW_group and APOE_RNV_SV
+group_counts <- df_processed %>%
+  count(PRS_abeta_NHW_group, APOE_RNV_SV, name = "n") %>%
+  mutate(APOE_RNV_SV_n = paste0(APOE_RNV_SV, " (n=", n, ")"))
+
+# Join the count information back to the main dataframe
+df_processed <- df_processed %>%
+  left_join(group_counts, by = c("PRS_abeta_NHW_group", "APOE_RNV_SV"))
+```
+
+
+###Logistic regression
+
+#PRS 40-60% & non-carrier as ref
+```{r}
+dependent_variables <- c("RCL40_visual")
+result_df <- data.frame()
+
+# Create df_compare by selecting relevant columns from df_processed
+df_compare <- df_processed[, c("age", "sex", "PC1", "PC2", "PC3", "PC4", "PC5", "PC6", "PC7", "PC8", "PC9", "PC10", "education", "batch", "PRS_abeta_NHW_group", "APOE_RNV_SV", "RCL40_visual")]
+
+# Create the combined column in df_compare
+df_compare$combined_group <- paste(df_compare$PRS_abeta_NHW_group, df_compare$APOE_RNV_SV, sep = "_")
+
+# Define the reference group
+reference_group <- "40-60%_non-carrier"
+
+# Create a list of all other groups to compare
+comparison_groups <- setdiff(unique(df_compare$combined_group), reference_group)
+
+# Define dependent variables
+dependent_variables <- c("RCL40_visual")
+result_df <- data.frame()
+
+# Convert "sex" and "batch" to factor variables
+df_compare$sex <- factor(df_compare$sex)
+df_compare$batch <- factor(df_compare$batch)
+
+# Loop through each dependent variable and each comparison group
+for (dependent_variable in dependent_variables) {
+  
+  for (comparison_group in comparison_groups) {
+    
+    # Create the indicator column for the current comparison
+    df_compare$comparison_group <- ifelse(df_compare$combined_group %in% c(reference_group, comparison_group), df_compare$combined_group, NA)
+    df_compare$comparison_group <- factor(df_compare$comparison_group, levels = c(reference_group, comparison_group))
+    
+    # Create the indicator column for the current comparison
+    df_compare$comparison_indicator <- ifelse(df_compare$combined_group == reference_group, 0, 
+                                           ifelse(df_compare$combined_group == comparison_group, 1, NA))
+    
+    # Create the formula for logistic regression
+    formula_comparison <- as.formula(paste0(dependent_variable, " ~ age + sex + PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + education + batch + comparison_indicator"))
+    
+    # Fit logistic regression model
+    logistic_model_comparison <- glm(formula_comparison, data = df_compare, family = binomial)
+    
+    # Print summary of the model
+    summary_output_comparison <- summary(logistic_model_comparison)
+    
+    if ("comparison_indicator" %in% rownames(summary_output_comparison$coefficients)) {
+      comparison_summary <- summary_output_comparison$coefficients[rownames(summary_output_comparison$coefficients) == "comparison_indicator", ]
+      comparison_output_df <- as.data.frame(t(comparison_summary))
+      comparison_output_df$Dependent_Variable <- dependent_variable
+      comparison_output_df$Comparison <- comparison_group
+      
+      split_comparison <- strsplit(comparison_group, "_")[[1]]
+      comparison_output_df$PRS_Group <- split_comparison[1]
+      comparison_output_df$APOE_RNV_SV_Group <- split_comparison[2]
+      result_df <- rbind(result_df, comparison_output_df)
+    }
+  }
+}
+
+# Print or save result_df
+print(result_df)
+
+result_df$APOE_RNV_SV_Group <- factor(result_df$APOE_RNV_SV_Group, levels = c("non-carrier", "carrier"))
+
+result_df$fdr <- p.adjust(result_df$`Pr(>|z|)`, method = "fdr")
+result_df$P_value <- ifelse(result_df$fdr < 0.05, "Significant", "Non-significant")
+
+# Create a data frame with the additional rows 
+ref_rows <- data.frame(
+  Estimate = 0,                  # Set Estimate to 1
+  `Std. Error` = 0,              # Set Standard Error to 0
+  `z value` = 0,                 # Set t value to 0
+  `Pr(>|z|)` = 0,                # Set Pr(>|t|) to 0
+  Dependent_Variable = "RCL40_visual",  # Add unique Dependent Variables
+  Comparison = "40-60%_non-carrier",  # Set Genetic Effect to "APOE only"
+  PRS_Group = "40-60%",      # Optional if you don't need this
+  APOE_RNV_SV_Group = "non-carrier",                 # Set type to distinguish APOE only
+  fdr = 0,
+  P_value = "Non-significant"    # Set P-value as Non-significant
+)
+
+colnames(ref_rows) <- colnames(result_df)
+
+result_df <- rbind(result_df, ref_rows)
+
+group_counts_for_merge <- group_counts %>%
+  select(PRS_abeta_NHW_group, APOE_RNV_SV, APOE_RNV_SV_n)
+
+
+result_df <- result_df %>%
+  left_join(group_counts_for_merge,
+            by = c("PRS_Group" = "PRS_abeta_NHW_group", 
+                   "APOE_RNV_SV_Group" = "APOE_RNV_SV"))
+```
+
+```{r}
+
+
+p5.4.1 <- ggplot(result_df, aes(x = APOE_RNV_SV_n, y = Estimate, 
+                                  ymin = Estimate - 1.96 * `Std. Error`, 
+                                  ymax = Estimate + 1.96 * `Std. Error`, 
+                                  color = P_value)) +
+  geom_point(size = 3) + 
+  geom_errorbar(aes(ymin = Estimate - 1.96 * `Std. Error`, 
+                    ymax = Estimate + 1.96 * `Std. Error`), 
+                width = 0.2) + 
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey") + 
+  labs(title = "", x = "APOE/RNV/SV Group", y = "logOR", color = "P-value") + 
+  scale_color_manual(values = c("black", "red"), labels = c("Non-significant", "Significant")) + 
+  facet_grid(. ~ PRS_Group, scales = "free") + 
+  theme_step1() + 
+  theme(legend.position = "none",
+            axis.text.x = element_text(angle = 40, hjust = 1, vjust = 1))
+
+#, space = "free"
+print(p5.4.1)
+```
